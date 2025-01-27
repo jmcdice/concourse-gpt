@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+###############################################################################
+# ConcourseGPT - AI-powered documentation generator for Concourse pipelines
+###############################################################################
+
+# Determine the project root directory
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Source all required modules
+source "${ROOT_DIR}/src/utils/formatting.sh"
+source "${ROOT_DIR}/src/utils/llm.sh"
+source "${ROOT_DIR}/src/utils/helpers.sh"
+source "${ROOT_DIR}/src/docgen/pipeline.sh"
+source "${ROOT_DIR}/src/docgen/groups.sh"
+source "${ROOT_DIR}/src/docgen/jobs.sh"
+source "${ROOT_DIR}/src/docgen/resources.sh"
+source "${ROOT_DIR}/src/mkdocs/generate.sh"
+source "${ROOT_DIR}/src/docgen/root-readme.sh"
+
+# Print usage information
+print_usage() {
+    cat <<EOF
+Usage: concourse-gpt <command> [options]
+
+Commands:
+  generate <pipeline.yml>    Generate documentation for a pipeline
+  gen-readme                 Generate root README summarizing all pipelines
+  build-site                 Build MkDocs site from generated documentation
+  serve                      Serve the documentation site locally
+  help                      Show this help message
+
+Environment Variables:
+  LLM_API_BASE              Base URL for the LLM API
+  LLM_MODEL                 Model identifier to use
+  VLLM_TOKEN               API token for authentication
+
+Examples:
+  concourse-gpt generate path/to/pipeline.yml
+  concourse-gpt build-site
+  concourse-gpt serve
+EOF
+}
+
+# Main documentation generation function
+generate_docs() {
+    local pipeline_file="$1"
+    
+    # Validate pipeline file exists
+    if [ ! -f "$pipeline_file" ]; then
+        echo "ERROR: Pipeline file not found: $pipeline_file"
+        exit 1
+    fi
+
+    # Get pipeline name and create directories
+    local pipeline_name
+    pipeline_name=$(get_pipeline_name "$pipeline_file")
+    
+    # Print header and create directories
+    print_header "$pipeline_name"
+    setup_doc_directories "$pipeline_name"
+
+    # Generate documentation sections
+    print_section_header "1" "4" "Generating Pipeline Overview"
+    retry_command document_pipeline "$pipeline_file" "$pipeline_name"
+
+    print_section_header "2" "4" "Processing Groups"
+    document_groups "$pipeline_file" "$pipeline_name"
+
+    print_section_header "3" "4" "Processing Jobs"
+    document_jobs "$pipeline_file" "$pipeline_name"
+
+    print_section_header "4" "4" "Processing Resources"
+    document_resources "$pipeline_file" "$pipeline_name"
+
+    print_completion "$pipeline_name"
+}
+
+# Main function
+main() {
+    # Check if no arguments provided
+    if [ $# -eq 0 ]; then
+        print_usage
+        exit 0
+    fi
+
+    # Parse command
+    local command="$1"
+    case "$command" in
+        generate)
+            if [ $# -lt 2 ]; then
+                echo "ERROR: No pipeline file specified"
+                print_usage
+                exit 1
+            fi
+            # For generate command, we need to validate the LLM environment
+            validate_llm_environment
+            validate_requirements
+            generate_docs "$2"
+            ;;
+        build-site)
+            # Change to project root to ensure proper paths
+            cd "$ROOT_DIR"
+            # No need to validate LLM environment for building site
+            validate_requirements
+            generate_mkdocs_site
+            echo
+            echo "Documentation site built successfully!"
+            echo "Run 'concourse-gpt serve' to view locally"
+            ;;
+        serve)
+            # Change to project root to ensure proper paths
+            cd "$ROOT_DIR"
+            # No need to validate LLM environment for serving
+            validate_requirements
+            serve_mkdocs_site
+            ;;
+        gen-readme)
+            # Change to project root to ensure proper paths
+            cd "$ROOT_DIR"
+            # Need LLM environment for README generation
+            validate_llm_environment
+            validate_requirements
+            generate_root_readme
+            ;;
+        help|--help|-h)
+            print_usage
+            ;;
+        *)
+            echo "ERROR: Unknown command: $command"
+            print_usage
+            exit 1
+            ;;
+    esac
+}
+
+# Run main if script is executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

@@ -1,0 +1,247 @@
+# Multi-Environment Deployment Pipeline
+#
+# This pipeline demonstrates:
+# - Environment promotion
+# - Approval gates
+# - Version tracking
+# - Semver resource usage
+# - Multiple environment configurations
+# - Slack notifications
+# - Docker image builds
+
+resource_types:
+- name: slack-notification
+  type: registry-image
+  source:
+    repository: cfcommunity/slack-notification-resource
+
+resources:
+- name: app-repo
+  type: git
+  source:
+    uri: ((git.uri))
+    branch: main
+    private_key: ((git.private_key))
+
+- name: version
+  type: semver
+  source:
+    driver: s3
+    initial_version: 0.0.1
+    bucket: ((s3.bucket))
+    key: versions/app-version
+    access_key_id: ((s3.access_key))
+    secret_access_key: ((s3.secret_key))
+
+- name: app-image
+  type: registry-image
+  source:
+    repository: ((docker.repository))
+    username: ((docker.username))
+    password: ((docker.password))
+
+- name: slack
+  type: slack-notification
+  source:
+    url: ((slack.webhook_url))
+
+- name: dev-config
+  type: git
+  source:
+    uri: ((git.config_uri))
+    branch: dev
+    private_key: ((git.private_key))
+
+- name: staging-config
+  type: git
+  source:
+    uri: ((git.config_uri))
+    branch: staging
+    private_key: ((git.private_key))
+
+- name: prod-config
+  type: git
+  source:
+    uri: ((git.config_uri))
+    branch: prod
+    private_key: ((git.private_key))
+
+groups:
+- name: development
+  jobs: [build, deploy-dev]
+- name: staging
+  jobs: [deploy-staging, integration-test]
+- name: production
+  jobs: [deploy-prod, smoke-test]
+
+jobs:
+- name: build
+  plan:
+  - get: app-repo
+    trigger: true
+  - get: version
+    params: {bump: patch}
+  - task: build
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: node, tag: lts}
+      inputs:
+      - name: app-repo
+      - name: version
+      outputs:
+      - name: build-output
+      run:
+        path: /bin/sh
+        args:
+        - -ec
+        - |
+          cd app-repo
+          version=$(cat ../version/version)
+          npm install
+          npm run build
+          echo "Version: $version"
+  - put: app-image
+    params:
+      build: app-repo
+      tag_file: version/version
+  - put: version
+    params: {file: version/version}
+    on_success:
+      put: slack
+      params:
+        text: "New build v$BUILD_NAME successful!"
+
+- name: deploy-dev
+  plan:
+  - in_parallel:
+    - get: app-repo
+      passed: [build]
+      trigger: true
+    - get: app-image
+      passed: [build]
+    - get: dev-config
+  - task: deploy
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: kubernetes/kubectl}
+      inputs:
+      - name: dev-config
+      - name: app-repo
+      run:
+        path: /bin/sh
+        args:
+        - -ec
+        - |
+          kubectl apply -f dev-config/k8s/
+    on_success:
+      put: slack
+      params:
+        text: "Deployed to dev environment"
+
+- name: deploy-staging
+  plan:
+  - in_parallel:
+    - get: app-repo
+      passed: [deploy-dev]
+    - get: app-image
+      passed: [deploy-dev]
+    - get: staging-config
+  - task: deploy
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: kubernetes/kubectl}
+      inputs:
+      - name: staging-config
+      - name: app-repo
+      run:
+        path: /bin/sh
+        args:
+        - -ec
+        - |
+          kubectl apply -f staging-config/k8s/
+    on_success:
+      put: slack
+      params:
+        text: "Deployed to staging environment"
+
+- name: integration-test
+  plan:
+  - get: app-repo
+    passed: [deploy-staging]
+    trigger: true
+  - task: run-tests
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: node, tag: lts}
+      inputs:
+      - name: app-repo
+      run:
+        dir: app-repo
+        path: /bin/sh
+        args:
+        - -ec
+        - |
+          npm install
+          npm run integration-test
+    on_failure:
+      put: slack
+      params:
+        text: "Integration tests failed in staging!"
+
+- name: deploy-prod
+  plan:
+  - in_parallel:
+    - get: app-repo
+      passed: [integration-test]
+    - get: app-image
+      passed: [integration-test]
+    - get: prod-config
+  - task: deploy
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: kubernetes/kubectl}
+      inputs:
+      - name: prod-config
+      - name: app-repo
+      run:
+        path: /bin/sh
+        args:
+        - -ec
+        - |
+          kubectl apply -f prod-config/k8s/
+    on_success:
+      put: slack
+      params:
+        text: "Deployed to production environment!"
+
+- name: smoke-test
+  plan:
+  - get: app-repo
+    passed: [deploy-prod]
+    trigger: true
+  - task: test
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: curlimages/curl}
+      run:
+        path: /bin/sh
+        args:
+        - -ec
+        - |
+          curl -f https://((app.prod_url))/health
+    on_failure:
+      put: slack
+      params:
+        text: "Production smoke tests failed! Please investigate."

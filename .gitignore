@@ -1,0 +1,25 @@
+# Python/MkDocs
+__pycache__/
+*.py[cod]
+site/
+mkdocs.yml
+
+# Environment/credentials
+env.sh
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Generated documentation
+docs/

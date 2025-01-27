@@ -1,0 +1,121 @@
+# Test and Deploy Pipeline
+#
+# This pipeline demonstrates:
+# - Job grouping
+# - Environment promotion
+# - Testing stages
+# - Resource types
+# - Git integration
+# - Slack notifications
+
+resource_types:
+- name: slack-notification
+  type: registry-image
+  source:
+    repository: cfcommunity/slack-notification-resource
+
+resources:
+- name: app-repo
+  type: git
+  source:
+    uri: ((git.uri))
+    branch: main
+    private_key: ((git.private_key))
+
+- name: staging-deployment
+  type: cf
+  source:
+    api: ((cf.api))
+    username: ((cf.username))
+    password: ((cf.password))
+    organization: ((cf.org))
+    space: staging
+
+- name: production-deployment
+  type: cf
+  source:
+    api: ((cf.api))
+    username: ((cf.username))
+    password: ((cf.password))
+    organization: ((cf.org))
+    space: production
+
+- name: slack
+  type: slack-notification
+  source:
+    url: ((slack.webhook_url))
+
+groups:
+- name: test
+  jobs: [run-tests, integration-test]
+- name: deploy
+  jobs: [deploy-staging, deploy-prod]
+
+jobs:
+- name: run-tests
+  plan:
+  - get: app-repo
+    trigger: true
+  - task: unit-tests
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: node, tag: latest}
+      inputs:
+      - name: app-repo
+      run:
+        dir: app-repo
+        path: npm
+        args: [test]
+    on_failure:
+      put: slack
+      params:
+        text: "Unit tests failed!"
+
+- name: integration-test
+  plan:
+  - get: app-repo
+    passed: [run-tests]
+    trigger: true
+  - task: integration
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: node, tag: latest}
+      inputs:
+      - name: app-repo
+      run:
+        dir: app-repo
+        path: npm
+        args: [run, integration]
+    on_failure:
+      put: slack
+      params:
+        text: "Integration tests failed!"
+
+- name: deploy-staging
+  plan:
+  - get: app-repo
+    passed: [integration-test]
+    trigger: true
+  - put: staging-deployment
+    params:
+      manifest: app-repo/manifest-staging.yml
+    on_success:
+      put: slack
+      params:
+        text: "Successfully deployed to staging!"
+
+- name: deploy-prod
+  plan:
+  - get: app-repo
+    passed: [deploy-staging]
+  - put: production-deployment
+    params:
+      manifest: app-repo/manifest-production.yml
+    on_success:
+      put: slack
+      params:
+        text: "Successfully deployed to production!"

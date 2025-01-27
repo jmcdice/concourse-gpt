@@ -1,0 +1,108 @@
+# BBR (BOSH Backup and Restore) Pipeline
+#
+# This production-grade pipeline demonstrates:
+# - Automated platform backup strategy
+# - Multiple backup targets (CF, Director, Ops Manager, SCS)
+# - Secure S3 integration
+# - Platform automation tooling
+# - Git-based configuration
+
+resources:
+- name: bbr-backup-bucket-cf
+  type: s3
+  source:
+    bucket: backup-bucket
+    access_key_id: ((s3.access_key))
+    secret_access_key: ((s3.secret_key))
+    region_name: ((s3.region))
+    endpoint: ((s3.endpoint))
+
+- name: bbr-backup-bucket-director
+  type: s3
+  source:
+    bucket: backup-bucket
+    access_key_id: ((s3.access_key))
+    secret_access_key: ((s3.secret_key))
+    region_name: ((s3.region))
+    endpoint: ((s3.endpoint))
+
+- name: bbr-backup-bucket-opsman
+  type: s3
+  source:
+    bucket: backup-bucket
+    access_key_id: ((s3.access_key))
+    secret_access_key: ((s3.secret_key))
+    region_name: ((s3.region))
+    endpoint: ((s3.endpoint))
+
+- name: bbr-backup-bucket-scs
+  type: s3
+  source:
+    bucket: backup-bucket
+    access_key_id: ((s3.access_key))
+    secret_access_key: ((s3.secret_key))
+    region_name: ((s3.region))
+    endpoint: ((s3.endpoint))
+
+- name: platform-automation-image
+  type: registry-image
+  source:
+    repository: platform-automation-image
+    tag: latest
+
+- name: platform-automation-tasks
+  type: s3
+  source:
+    bucket: automation-tasks
+    access_key_id: ((s3.access_key))
+    secret_access_key: ((s3.secret_key))
+    region_name: ((s3.region))
+    endpoint: ((s3.endpoint))
+
+- name: opsman-env-git-repo
+  type: git
+  source:
+    uri: ((git.uri))
+    branch: main
+    private_key: ((git.private_key))
+
+- name: mc
+  type: registry-image
+  source:
+    repository: minio/mc
+    tag: latest
+
+jobs:
+- name: bbr-backup
+  plan:
+  - in_parallel:
+    - get: platform-automation-image
+    - get: platform-automation-tasks
+    - get: opsman-env-git-repo
+    - get: mc
+  - task: backup-cf
+    image: platform-automation-image
+    config:
+      platform: linux
+      inputs:
+      - name: opsman-env-git-repo
+      outputs:
+      - name: backup-artifact
+      run:
+        path: backup.sh
+  - put: bbr-backup-bucket-cf
+    params:
+      file: backup-artifact/cf-backup.tar.gz
+  - task: backup-director
+    image: platform-automation-image
+    config:
+      platform: linux
+      inputs:
+      - name: opsman-env-git-repo
+      outputs:
+      - name: backup-artifact
+      run:
+        path: backup.sh
+  - put: bbr-backup-bucket-director
+    params:
+      file: backup-artifact/director-backup.tar.gz

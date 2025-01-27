@@ -1,0 +1,120 @@
+# Database Backup Pipeline
+#
+# This pipeline demonstrates:
+# - Scheduled operations
+# - S3 integration
+# - Cleanup routines
+# - Notification patterns
+# - Environment variables
+
+resource_types:
+- name: cron
+  type: registry-image
+  source:
+    repository: cftoolsmiths/cron-resource
+
+resources:
+- name: backup-schedule
+  type: cron
+  source:
+    expression: "0 0 * * *"  # Daily at midnight
+    location: "UTC"
+
+- name: backup-bucket
+  type: s3
+  source:
+    bucket: ((s3.bucket))
+    access_key_id: ((s3.access_key))
+    secret_access_key: ((s3.secret_key))
+    region_name: ((s3.region))
+    regexp: database-backup-(.*).sql.gz
+
+- name: email
+  type: email
+  source:
+    smtp:
+      host: ((smtp.host))
+      port: ((smtp.port))
+      username: ((smtp.username))
+      password: ((smtp.password))
+
+jobs:
+- name: backup-database
+  plan:
+  - get: backup-schedule
+    trigger: true
+  - task: perform-backup
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: postgres, tag: latest}
+      outputs:
+      - name: backup-files
+      params:
+        PGHOST: ((db.host))
+        PGUSER: ((db.user))
+        PGPASSWORD: ((db.password))
+        PGDATABASE: ((db.name))
+      run:
+        path: /bin/sh
+        args:
+        - -ec
+        - |
+          timestamp=$(date +%Y%m%d-%H%M%S)
+          output_file="backup-files/database-backup-${timestamp}.sql"
+          
+          echo "Starting backup..."
+          pg_dump > "${output_file}"
+          
+          echo "Compressing backup..."
+          gzip "${output_file}"
+          
+          echo "Backup complete: ${output_file}.gz"
+  - put: backup-bucket
+    params:
+      file: backup-files/*.sql.gz
+    on_success:
+      put: email
+      params:
+        subject: "Database Backup Successful"
+        body: "Database backup completed and uploaded to S3"
+    on_failure:
+      put: email
+      params:
+        subject: "Database Backup Failed"
+        body: "Database backup job failed. Please check the pipeline."
+
+- name: cleanup-old-backups
+  plan:
+  - get: backup-schedule
+    trigger: true
+    passed: [backup-database]
+  - task: list-and-clean
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: amazon/aws-cli}
+      params:
+        AWS_ACCESS_KEY_ID: ((s3.access_key))
+        AWS_SECRET_ACCESS_KEY: ((s3.secret_key))
+        AWS_DEFAULT_REGION: ((s3.region))
+        BUCKET: ((s3.bucket))
+      run:
+        path: /bin/sh
+        args:
+        - -ec
+        - |
+          # Keep last 30 days of backups
+          echo "Listing backups older than 30 days..."
+          aws s3api list-objects \
+            --bucket "$BUCKET" \
+            --query 'Contents[?LastModified<=`'$(date -d '30 days ago' --iso-8601=seconds)'`].[Key]' \
+            --output text | \
+          while read -r key; do
+            if [ ! -z "$key" ]; then
+              echo "Deleting $key..."
+              aws s3 rm "s3://$BUCKET/$key"
+            fi
+          done

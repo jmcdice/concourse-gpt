@@ -1,0 +1,58 @@
+# Simple Test Pipeline
+#
+# This pipeline demonstrates:
+# - Git resource usage
+# - Basic testing pattern
+# - Simple job dependencies
+# - Resource triggers
+
+resources:
+- name: app-code
+  type: git
+  source:
+    uri: ((git.repository))
+    branch: main
+
+jobs:
+- name: lint
+  plan:
+  - get: app-code
+    trigger: true
+  - task: run-linter
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: node, tag: lts}
+      inputs:
+      - name: app-code
+      run:
+        dir: app-code
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          npm install
+          npm run lint
+
+- name: test
+  plan:
+  - get: app-code
+    trigger: true
+    passed: [lint]
+  - task: run-tests
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: node, tag: lts}
+      inputs:
+      - name: app-code
+      run:
+        dir: app-code
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          npm install
+          npm test
