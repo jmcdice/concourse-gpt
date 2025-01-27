@@ -82,6 +82,8 @@ concourse-gpt serve
 ```bash
 git clone https://github.com/jmcdice/concourse-gpt.git
 cd concourse-gpt
+python3 -m venv .venv
+source .venv/bin/activate
 ./scripts/install.sh
 ```
 
