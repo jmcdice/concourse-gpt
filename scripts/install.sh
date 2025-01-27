@@ -44,7 +44,6 @@ check_requirements() {
         jq
         yq
         python3
-        pip
     )
     
     for cmd in "${required_cmds[@]}"; do
