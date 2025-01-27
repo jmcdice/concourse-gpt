@@ -8,7 +8,6 @@ Before installing ConcourseGPT, ensure you have:
 
 - Bash 4.0 or higher
 - Python 3.7 or higher
-- pip (Python package manager)
 - curl
 - yq command line tool
 - Access to an LLM API endpoint
@@ -27,7 +26,7 @@ brew install python3 yq
 sudo apt update
 
 # Install dependencies
-sudo apt install python3 python3-pip curl
+sudo apt install python3 curl
 pip install yq
 ```
 
@@ -37,7 +36,7 @@ pip install yq
 sudo yum install epel-release
 
 # Install dependencies
-sudo yum install python3 python3-pip curl
+sudo yum install python3 curl
 pip install yq
 ```
 
@@ -49,9 +48,10 @@ git clone https://github.com/jmcdice/concourse-gpt.git
 cd concourse-gpt
 ```
 
-2. Make the main script executable:
+2. Setup python virtual env
 ```bash
-chmod +x bin/concourse-gpt
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
 3. (Optional) Add to your PATH:
