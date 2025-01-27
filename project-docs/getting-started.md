@@ -45,7 +45,7 @@ pip install yq
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/concourse-gpt.git
+git clone https://github.com/jmcdice/concourse-gpt.git
 cd concourse-gpt
 ```
 
