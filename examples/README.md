@@ -8,12 +8,15 @@ This directory contains example Concourse pipelines that demonstrate different p
 - `intermediate/` - More complex patterns for common use cases
 - `advanced/` - Production-grade examples with real-world patterns
 
+## Example Pipeline Screenshot
+![Advanced Pipeline](screenshot.png)
+
 ## Running Examples
 
 To generate documentation for any example:
 
 ```bash
-concourse-gpt generate examples/basic/hello-world.yml
+bin/concourse-gpt generate examples/basic/hello-world.yml
 ```
 
 To build a complete documentation site for all examples:
@@ -22,16 +25,16 @@ To build a complete documentation site for all examples:
 # Generate docs for all examples
 for dir in basic intermediate advanced; do
   for f in examples/$dir/*.yml; do
-    concourse-gpt generate "$f"
+    bin/concourse-gpt generate "$f"
   done
 done
 
 # Generate overview README
-concourse-gpt gen-readme
+bin/concourse-gpt gen-readme
 
 # Build and serve the site
-concourse-gpt build-site
-concourse-gpt serve
+bin/concourse-gpt build-site
+bin/concourse-gpt serve
 ```
 
 ## Example Categories
