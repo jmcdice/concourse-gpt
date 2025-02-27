@@ -2,6 +2,20 @@
 
 This guide provides examples of using ConcourseGPT with different types of pipelines and shows sample output. All examples are available in the [examples/](../examples/) directory.
 
+This project came about from understanding pipelines can be broken down into pieces, like this:
+
+Get a list of jobs/resources/groups:
+```bash
+yq '.jobs[].name' examples/advanced/multi-env.yml
+```
+
+For each job in jobs:
+```bash
+yq '.jobs[] | select(.name == "deploy-dev")' examples/advanced/multi-env.yml
+```
+
+
+
 ## Basic Examples
 
 ### Hello World Pipeline

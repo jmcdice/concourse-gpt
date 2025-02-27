@@ -38,6 +38,10 @@ export LLM_MODEL="your-model-name"
 export VLLM_TOKEN="your-api-token"
 ```
 
+**Note** about API BASE url's
+- Ollama style: https://ollama-url.com/api/v1
+- OpenAI style: https://api.openai.com/v1
+ 
 2. Run documentation generation:
 ```bash
 concourse-gpt generate path/to/pipeline.yml

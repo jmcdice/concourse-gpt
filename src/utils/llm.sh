@@ -73,15 +73,22 @@ call_llm_api() {
             print_retry_message "$attempt" "$max_attempts"
         fi
 
+        # Create a debug log file to capture the raw response
+        local debug_log="llm-response-debug-$(date +%s).log"
+        if [ "${DEBUG_CURL:-}" = "1" ]; then
+            echo "Attempting API call (attempt $attempt/$max_attempts)" > "$debug_log"
+            echo "Payload: $json_payload" >> "$debug_log"
+        fi
+
         if raw_response=$(curl "${curl_opts[@]}" \
-            "${LLM_API_BASE}/api/v1/chat/completions" \
+            "${LLM_API_BASE}/chat/completions" \
             -H "Authorization: Bearer ${VLLM_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "$json_payload" 2>&1); then
             
             # Log response if debug is enabled
             if [ "${DEBUG_CURL:-}" = "1" ]; then
-                echo "$raw_response" > "llm-response-$(date +%s).log"
+                echo "Raw response: $raw_response" >> "$debug_log"
             fi
             break
         else
@@ -89,14 +96,28 @@ call_llm_api() {
             printf "\r%${COLUMNS}s\r" ""
             printf "        ${RED:-}↳ API call failed: %s${RESET:-}\n" "$raw_response"
             
+            if [ "${DEBUG_CURL:-}" = "1" ]; then
+                echo "API call failed: $raw_response" >> "$debug_log"
+            fi
+            
             if [ "$attempt" -lt "$max_attempts" ]; then
                 sleep "$sleep_between"
             fi
         fi
     done
 
+    # Debug the raw response
+    if [ "${DEBUG_CURL:-}" = "1" ]; then
+        echo "Attempting to extract content from: $raw_response" >> "$debug_log"
+    fi
+
     local assistant_text
     assistant_text=$(echo "$raw_response" | jq -r '.choices[0].message.content' 2>/dev/null || echo "")
+    
+    if [ "${DEBUG_CURL:-}" = "1" ]; then
+        echo "Extracted content: $assistant_text" >> "$debug_log"
+    fi
+    
     echo "$assistant_text"
 }
 
@@ -133,3 +154,4 @@ call_llm_api_with_validation() {
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     validate_llm_environment
 fi
+
