@@ -79,19 +79,29 @@ _process_single_group() {
     group_def=$(yq eval '.groups[] | select(.name == "'"$group"'")' "$pipeline_file")
 
     local prompt="
-Provide a markdown-formatted explanation of this Concourse pipeline group.
-Use an official reference tone, active voice, and do NOT mention AI generation.
-Do not repeat the definition verbatim.
+Generate comprehensive markdown documentation for this Concourse pipeline group as it's implemented in this specific pipeline.
 
-Important Style Note:
+FORMAT REQUIREMENTS:
+- Start with H1 heading 'Concourse Group Documentation: [GroupName]'
+- Follow with H2 'Purpose' section explaining what this specific group accomplishes in this pipeline
+- Include H2 'Group Components' section that:
+  * Lists all actual jobs and resources that belong to this group
+  * Explains how these components work together to fulfill the group's purpose
+  * Describes the workflow or sequence of operations within this group
+- Include H2 'Pipeline Relationships' explaining:
+  * How this group relates to other groups in this specific pipeline
+  * Any dependencies this group has on other parts of the pipeline
+  * Any other groups that depend on this group's outputs
 
-- Write in a direct doc style.
-- Avoid phrases like \"the provided pipeline\" or \"you asked me...\"
-- Do NOT mention that this was AI-generated.
-- Use active voice, official reference tone.
+WRITING STYLE:
+- Describe the actual implementation, not theoretical usage
+- Use statements like 'This group contains...' rather than 'This group can contain...'
+- Reference specific pipeline details rather than general Concourse concepts
+- Be thorough but avoid unnecessary repetition
+- Do NOT refer to this document as AI-generated
+- Do NOT use phrases like 'the provided group' or 'you asked me to'
 
-Here is the pipeline definition (for context only; do not repeat verbatim):
-
+GROUP DEFINITION:
 ${group_def}
 "
     local response
@@ -102,7 +112,6 @@ ${group_def}
     fi
 
     {
-        echo "# $group"
         echo
         echo "$response"
         echo

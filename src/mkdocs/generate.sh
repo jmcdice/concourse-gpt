@@ -45,10 +45,20 @@ build_subnav() {
     fi
     
     echo "    - ${subdir}:"
+    
+    # First, explicitly check for and add the index.md file
+    if [ -f "${path}/index.md" ]; then
+        echo "      - index: ${pipeline_dir}/${subdir}/index.md"
+        echo
+    fi
+    
+    # Then add all other MD files (excluding index.md)
     while IFS= read -r mdfile; do
         local relpath="${mdfile#docs/}"
         local name="$(basename "$mdfile" .md)"
-        echo "      - ${name}: ${relpath}"
+        if [ "$name" != "index" ]; then  # Skip index.md as we've already added it
+            echo "      - ${name}: ${relpath}"
+        fi
     done < <(find "$path" -maxdepth 1 -name '*.md' | sort)
 }
 
