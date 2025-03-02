@@ -10,6 +10,7 @@ set -euo pipefail
 
 # Source required utilities
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "${SCRIPT_DIR}/utils/formatting.sh"
 source "${SCRIPT_DIR}/utils/llm.sh"
 source "${SCRIPT_DIR}/utils/helpers.sh"
@@ -66,24 +67,12 @@ _process_small_pipeline() {
     local pipeline_data
     pipeline_data="$(cat "$pipeline_file")"
 
-    local prompt="
-You are given a Concourse pipeline definition. Provide a concise but thorough overview:
-1. Purpose
-2. Architecture
-3. Design Patterns
-4. Best Practices
-
-Important Style Note:
-
-- Write in a direct doc style.
-- Avoid phrases like \"the provided pipeline\" or \"you asked me...\"
-- Do NOT mention that this was AI-generated.
-- Use active voice, official reference tone.
-
-Here is the pipeline definition (for context only; do not repeat verbatim):
-
-${pipeline_data}
-"
+    # Read prompt template from file
+    local prompt_template
+    prompt_template=$(<"${ROOT_DIR}/prompts/pipeline-small.md")
+    
+    # Replace placeholder with actual pipeline data
+    local prompt="${prompt_template/\$\{pipeline_data\}/$pipeline_data}"
     local response
     if ! response=$(call_llm_api_with_validation "$prompt"); then
         rm -f "$tmp_doc"
@@ -132,21 +121,12 @@ _process_large_pipeline() {
         local chunk_data
         chunk_data="$(cat "$chunk_file")"
 
-        local chunk_prompt="
-You are given a portion of a Concourse pipeline definition. Summarize only this chunk. 
-Focus on architecture, purpose, design patterns, best practices. Keep it concise. 
-
-Important Style Note:
-
-- Write in a direct doc style.
-- Avoid phrases like \"the provided pipeline\" or \"you asked me...\"
-- Do NOT mention that this was AI-generated.
-- Use active voice, official reference tone.
-
-Here is the pipeline definition (for context only; do not repeat verbatim):
-
-${chunk_data}
-"
+        # Read chunk prompt template from file
+        local chunk_prompt_template
+        chunk_prompt_template=$(<"${ROOT_DIR}/prompts/pipeline-chunk.md")
+        
+        # Replace placeholder with actual chunk data
+        local chunk_prompt="${chunk_prompt_template/\$\{chunk_data\}/$chunk_data}"
         local chunk_response
         if ! chunk_response=$(call_llm_api_with_validation "$chunk_prompt"); then
             print_progress "Pipeline Overview" "error"
@@ -162,19 +142,12 @@ ${chunk_data}
 
     # Unify the summaries
     printf "      Combining partial summaries...\n"
-    local unify_prompt="
-We have multiple partial summaries of a Concourse pipeline. 
-Combine them into one cohesive overview:
-1. Purpose
-2. Architecture
-3. Design Patterns
-4. Best Practices
-
-Use an official reference tone, active voice, and do NOT mention chunking or AI generation.
-
-Partial Summaries:
-${partial_summaries}
-"
+    # Read unify prompt template from file
+    local unify_prompt_template
+    unify_prompt_template=$(<"${ROOT_DIR}/prompts/pipeline-unify.md")
+    
+    # Replace placeholder with actual partial summaries
+    local unify_prompt="${unify_prompt_template/\$\{partial_summaries\}/$partial_summaries}"
     local unify_response
     if ! unify_response=$(call_llm_api_with_validation "$unify_prompt"); then
         print_progress "Pipeline Overview" "error"
