@@ -44,33 +44,33 @@ export VLLM_TOKEN="your-api-token"
  
 2. Run documentation generation:
 ```bash
-concourse-gpt generate path/to/pipeline.yml
+bin/concourse-gpt generate path/to/pipeline.yml
 ```
 
 3. Build the documentation site:
 ```bash
-concourse-gpt build-site
+bin/concourse-gpt build-site
 ```
 
 4. View your documentation:
 ```bash
-concourse-gpt serve
+bin/concourse-gpt serve
 ```
 
 ## Command Reference
 
 ```bash
 # Generate docs for a pipeline
-concourse-gpt generate pipeline.yml
+bin/concourse-gpt generate pipeline.yml
 
 # Generate overview README of all documented pipelines
-concourse-gpt gen-readme
+bin/concourse-gpt gen-readme
 
 # Build static documentation site
-concourse-gpt build-site
+bin/concourse-gpt build-site
 
 # Serve documentation locally
-concourse-gpt serve
+bin/concourse-gpt serve
 ```
 
 ## Requirements
