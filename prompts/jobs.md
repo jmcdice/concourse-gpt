@@ -9,7 +9,8 @@ FORMAT REQUIREMENTS:
   * 'Description:' provide for an initial description
   * Show the step's code in a YAML code block
   * Follow with bullet points explaining:
-    - Resources accessed
+    - Resources accessed: List all resources used in this step in a single line, formatted as links 
+      to their documentation (exactly as: [resource-name](../resources/resource-name.md))
     - Actions performed
     - List any parameters/configurations
     - How this step relates to other steps

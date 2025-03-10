@@ -13,14 +13,14 @@ set -euo pipefail
 get_pipeline_name() {
     local filename="$1"
     local basename
-    basename=$(basename "$filename" .yml)
-    local pipeline_type=${basename%-hci-*}
-
-    if [ "$pipeline_type" = "$basename" ]; then
-        echo "$basename"
-    else
-        echo "$pipeline_type"
-    fi
+    
+    # Get the filename without the path
+    basename=$(basename "$filename")
+    
+    # Remove the extension (everything after the last dot)
+    basename="${basename%.*}"
+    
+    echo "$basename"
 }
 
 # Sanitize filename for use in paths

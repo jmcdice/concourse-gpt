@@ -31,6 +31,16 @@ document_secrets() {
   # Progress header
   printf "      Processing pipeline secrets\n"
   
+  # Define output file path
+  local output_file="$secrets_dir/pipeline-secrets.md"
+  
+  # Check if file already exists
+  if [ -s "$output_file" ]; then
+    print_progress "pipeline-secrets" "skip"
+    echo "- [Pipeline Secrets](pipeline-secrets.md)" >> "$index_file"
+    return
+  fi
+  
   # Process pipeline secrets
   local yaml_content
   yaml_content=$(cat "$pipeline_file")
@@ -48,7 +58,6 @@ document_secrets() {
   response=$(call_llm_api_with_validation "$prompt")
   
   if [[ -n "$response" ]]; then
-    local output_file="$secrets_dir/pipeline-secrets.md"
     local title="Secrets in $pipeline_name pipeline"
     
     echo "# $title" > "$output_file"
