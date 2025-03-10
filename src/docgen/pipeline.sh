@@ -51,6 +51,7 @@ document_pipeline() {
     echo "* [Groups](groups/index.md)" >> "$tmp_doc"
     echo "* [Jobs](jobs/index.md)" >> "$tmp_doc"
     echo "* [Resources](resources/index.md)" >> "$tmp_doc"
+    echo "* [Secrets](secrets/index.md)" >> "$tmp_doc"
 
     mv "$tmp_doc" "$doc_file"
     print_progress "Pipeline Overview" "success"

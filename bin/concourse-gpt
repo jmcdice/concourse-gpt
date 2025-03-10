@@ -17,6 +17,7 @@ source "${ROOT_DIR}/src/docgen/pipeline.sh"
 source "${ROOT_DIR}/src/docgen/groups.sh"
 source "${ROOT_DIR}/src/docgen/jobs.sh"
 source "${ROOT_DIR}/src/docgen/resources.sh"
+source "${ROOT_DIR}/src/docgen/secrets.sh"
 source "${ROOT_DIR}/src/mkdocs/generate.sh"
 source "${ROOT_DIR}/src/docgen/root-readme.sh"
 
@@ -63,17 +64,20 @@ generate_docs() {
     setup_doc_directories "$pipeline_name"
 
     # Generate documentation sections
-    print_section_header "1" "4" "Generating Pipeline Overview"
+    print_section_header "1" "5" "Generating Pipeline Overview"
     retry_command document_pipeline "$pipeline_file" "$pipeline_name"
 
-    print_section_header "2" "4" "Processing Groups"
+    print_section_header "2" "5" "Processing Groups"
     document_groups "$pipeline_file" "$pipeline_name"
 
-    print_section_header "3" "4" "Processing Jobs"
+    print_section_header "3" "5" "Processing Jobs"
     document_jobs "$pipeline_file" "$pipeline_name"
 
-    print_section_header "4" "4" "Processing Resources"
+    print_section_header "4" "5" "Processing Resources"
     document_resources "$pipeline_file" "$pipeline_name"
+    
+    print_section_header "5" "5" "Processing Secrets"
+    document_secrets "$pipeline_file" "$pipeline_name"
 
     print_completion "$pipeline_name"
 }

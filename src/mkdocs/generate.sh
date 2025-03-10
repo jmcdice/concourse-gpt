@@ -93,7 +93,8 @@ build_nav() {
             done < <(find "docs/${pipeline_dir}" -maxdepth 1 -name '*.md' ! -name 'README.md' | sort)
         fi
         
-        # Handle subfolders
+        # Handle subfolders - secrets first, then other sections
+        build_subnav "$pipeline_dir" "secrets"
         for sdir in groups jobs resources; do
             build_subnav "$pipeline_dir" "$sdir"
         done
