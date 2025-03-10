@@ -19,7 +19,7 @@ validate_llm_environment() {
     
     [[ -z "${LLM_API_BASE:-}" ]] && missing_vars+=("LLM_API_BASE")
     [[ -z "${LLM_MODEL:-}" ]] && missing_vars+=("LLM_MODEL")
-    [[ -z "${VLLM_TOKEN:-}" ]] && missing_vars+=("VLLM_TOKEN")
+    [[ -z "${LLM_TOKEN:-}" ]] && missing_vars+=("LLM_TOKEN")
     
     if (( ${#missing_vars[@]} > 0 )); then
         echo "ERROR: Required environment variables not set: ${missing_vars[*]}" >&2
@@ -82,7 +82,7 @@ call_llm_api() {
 
         if raw_response=$(curl "${curl_opts[@]}" \
             "${LLM_API_BASE}/chat/completions" \
-            -H "Authorization: Bearer ${VLLM_TOKEN}" \
+            -H "Authorization: Bearer ${LLM_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "$json_payload" 2>&1); then
             

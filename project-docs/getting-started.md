@@ -67,7 +67,7 @@ ConcourseGPT requires access to an LLM API. Configure your environment with:
 ```bash
 export LLM_API_BASE="your-llm-api-endpoint"
 export LLM_MODEL="your-model-name"
-export VLLM_TOKEN="your-api-token"
+export LLM_TOKEN="your-api-token"
 ```
 
 Add these to your shell's rc file (e.g., ~/.bashrc or ~/.zshrc) to make them permanent.

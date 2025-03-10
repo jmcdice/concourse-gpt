@@ -36,7 +36,7 @@ Commands:
 Environment Variables:
   LLM_API_BASE              Base URL for the LLM API
   LLM_MODEL                 Model identifier to use
-  VLLM_TOKEN               API token for authentication
+  LLM_TOKEN                 API token for authentication
 
 Examples:
   concourse-gpt generate path/to/pipeline.yml

@@ -14,7 +14,7 @@ export LLM_API_BASE="https://your-llm-api.example.com"
 export LLM_MODEL="your-model-name"
 
 # API token for authentication
-export VLLM_TOKEN="your-api-token"
+export LLM_TOKEN="your-api-token"
 ```
 
 These can be added to your shell's rc file (e.g., ~/.bashrc or ~/.zshrc) or a local env.sh:
@@ -23,7 +23,7 @@ These can be added to your shell's rc file (e.g., ~/.bashrc or ~/.zshrc) or a lo
 # env.sh
 export LLM_API_BASE="..."
 export LLM_MODEL="..."
-export VLLM_TOKEN="..."
+export LLM_TOKEN="..."
 ```
 
 Then source it:

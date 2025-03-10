@@ -35,7 +35,7 @@ The generated documentation is organized into a searchable static site using MkD
 ```bash
 export LLM_API_BASE="your-llm-api-endpoint"
 export LLM_MODEL="your-model-name"
-export VLLM_TOKEN="your-api-token"
+export LLM_TOKEN="your-api-token"
 ```
 
 **Note** about API BASE url's
