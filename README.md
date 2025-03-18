@@ -88,7 +88,7 @@ git clone https://github.com/jmcdice/concourse-gpt.git
 cd concourse-gpt
 python3 -m venv .venv
 source .venv/bin/activate
-./scripts/install.sh
+pip install mkdocs mkdocs-material
 ```
 
 ## Implementation Note
